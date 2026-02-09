@@ -1,0 +1,271 @@
+PROJECT NAME: Fabrika – Do‘kon Savdo va Sklad Avtomatlashtirish Tizimi
+
+VERSION: 1.0
+DATE: 2026-02-09
+TIMEZONE: Asia/Tashkent (UTC +05:00)
+
+==================================================
+1. LOYIHA MAQSADI
+==================================================
+Ushbu tizim optom kiyim savdosi bilan shug‘ullanuvchi do‘kon uchun
+fabrika → do‘kon → savdo → pul oqimi jarayonlarini to‘liq avtomatlashtirish
+uchun mo‘ljallangan.
+
+Tizim quyidagilarni ta’minlashi kerak:
+- Fabrikadan mahsulot jo‘natish (nakladnoy)
+- Do‘kon tomonidan qabul va tasdiqlash
+- Do‘kon skladini dona bo‘yicha yuritish
+- Savdoni dona bo‘yicha amalga oshirish
+- Naqd / karta / P2P to‘lovlarni hisoblash
+- Ishchi va do‘kon xarajatlarini yuritish
+- Kunlik va oylik hisobotlar
+
+==================================================
+2. ROLLAR (FOYDALANUVCHI TURLARI)
+==================================================
+
+1) FACTORY_ADMIN (Fabrika admini)
+- Mahsulot yaratish
+- Zakazlarni ko‘rish
+- Nakladnoy ochish
+- Mahsulot jo‘natish
+
+2) STORE_ADMIN (Do‘kon admini / sotuvchi)
+- Zakaz ochish
+- Nakladnoy qabul qilish
+- Tovarni tasdiqlash
+- Savdo qilish
+- Pul qabul qilish
+- Xarajat va ishchi pullarini kiritish
+- Hisobotlarni ko‘rish
+
+==================================================
+3. MAHSULOT (PRODUCT)
+==================================================
+Mahsulot faqat sotilish narxi bilan yuritiladi.
+Kelish (cost) narxi YO‘Q.
+
+FIELDS:
+- name (nomi)
+- category (kurtka, palto, vetrovka, dublonka)
+- sale_price (1 dona narxi)
+- pack_size (standart pachka: 5 yoki 6 dona)
+- is_active
+
+ESLATMA:
+Savdoda pachka emas, DONA soni kiritiladi.
+
+==================================================
+4. ZAKAZ (DO‘KON → FABRIKA)
+==================================================
+Zakaz do‘kon tomonidan ochiladi.
+
+Zakaz:
+- order_no
+- status (OPEN, INVOICED, CLOSED)
+- created_by
+- created_at
+
+Zakaz item:
+- product
+- qty_units_requested (dona)
+
+==================================================
+5. NAKLADNOY (FABRIKA → DO‘KON)
+==================================================
+Fabrika zakaz asosida yoki mustaqil nakladnoy ochadi.
+
+Nakladnoy:
+- invoice_no
+- order (ixtiyoriy)
+- status (DRAFT, SENT, RECEIVED)
+- created_by
+- sent_at
+
+Nakladnoy item:
+- product
+- qty_units_sent (dona)
+
+==================================================
+6. QABUL VA TASDIQLASH (DO‘KON)
+==================================================
+Do‘kon nakladnoyni qabul qiladi va kelgan mahsulotlarni belgilaydi.
+
+Qabul:
+- invoice
+- status (PENDING, CONFIRMED)
+- confirmed_by
+- confirmed_at
+
+Tasdiqlangandan keyin:
+- Mahsulotlar do‘kon skladiga qo‘shiladi
+- Sklad dona bo‘yicha yuritiladi
+
+==================================================
+7. DO‘KON SKLADI
+==================================================
+Sklad faqat TASDIQLANGAN nakladnoy orqali o‘zgaradi.
+
+FIELDS:
+- product
+- qty_units (qoldiq dona)
+
+Sklad harakatlari audit sifatida saqlanadi:
+- kirim (receipt)
+- chiqim (sale)
+- adjustment
+
+==================================================
+8. SAVDO
+==================================================
+Savdo dona bo‘yicha amalga oshiriladi.
+
+Sale:
+- sale_no
+- seller
+- customer (qarz bo‘lsa majburiy)
+- subtotal
+- discount_amount (faqat summa)
+- total
+- paid_total
+- debt_amount
+- created_at
+
+Sale item:
+- product
+- qty_units
+- unit_price (snapshot)
+- line_total
+
+QOIDALAR:
+- Qoldiqdan ortiq sotish mumkin emas
+- debt_amount > 0 bo‘lsa customer majburiy
+
+==================================================
+9. MIJOZLAR (CUSTOMERS)
+==================================================
+Mijoz faqat qarz bo‘lganda majburiy.
+
+FIELDS:
+- full_name
+- phone
+- address
+- debt_balance
+
+==================================================
+10. TO‘LOV TURLARI
+==================================================
+3 xil to‘lov mavjud:
+
+1) CASH (naqd)
+2) CARD (umumiy karta / POS)
+3) P2P (kartadan kartaga)
+
+P2P bo‘lsa qaysi kartaga tushgani belgilanadi.
+
+CardAccount:
+- card_holder
+- card_type (Uzcard, Humo, Visa va h.k.)
+- last4 (oxirgi 4 raqam)
+- is_active
+
+SalePayment:
+- sale
+- method (CASH, CARD, P2P)
+- amount
+- card_account (faqat P2P bo‘lsa)
+- note
+
+==================================================
+11. ISHCHI OLADIGAN PULLAR
+==================================================
+Ishchilarda oylik avtomatik yo‘q.
+Ishchi kun davomida istalgan payt pul olishi mumkin.
+
+EmployeeWithdrawal:
+- employee
+- amount
+- paid_from (CASH/CARD/P2P)
+- note
+- created_at
+
+Oylik hisob:
+= beriladigan oylik – oy davomida olingan pullar
+
+==================================================
+12. DO‘KON XARAJATLARI
+==================================================
+Barcha do‘kon xarajatlari hisobga olinadi:
+
+- ovqat / abet
+- arava
+- yuk mashina
+- arenda
+- kommunal
+- remont
+- boshqa
+
+StoreExpense:
+- category
+- amount
+- paid_from (CASH/CARD/P2P)
+- card_account (agar P2P)
+- note
+- created_at
+
+==================================================
+13. KASSA (CASH LEDGER)
+==================================================
+Barcha pul kirim/chiqimlar yagona ledger’da yuritiladi.
+
+CashLedger:
+- direction (IN / OUT)
+- method (CASH / CARD / P2P)
+- amount
+- card_account (P2P bo‘lsa)
+- source (sale, expense, withdrawal, debt_payment)
+- ref_id
+- created_at
+
+==================================================
+14. HISOBOTLAR
+==================================================
+Barcha hisobotlar Asia/Tashkent vaqti bilan.
+
+KUNLIK HISOBOT:
+- Savdo summalari
+- Skidka
+- Qarz yaratilgan
+- Naqd tushum
+- Karta tushum
+- P2P tushum (kartalar bo‘yicha)
+- Do‘kon xarajatlari
+- Ishchi olgan pullar
+- Naqd kassa net o‘zgarish
+
+OYLIK HISOBOT:
+- Sotuvchi bo‘yicha tushum
+- Ishchi olgan pullar
+- Do‘kon xarajatlari
+- Mijozlar qarzi
+
+==================================================
+15. TEXNIK TALABLAR
+==================================================
+Backend:
+- Django + Django REST Framework
+
+Database:
+- PostgreSQL
+
+Deployment:
+- Docker
+- Google Cloud Run
+- Cloud SQL (PostgreSQL)
+
+Timezone:
+- Asia/Tashkent (UTC +05)
+
+==================================================
+END OF DOCUMENT
+==================================================
