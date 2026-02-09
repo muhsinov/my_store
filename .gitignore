@@ -1,5 +1,4 @@
-<<<<<<< HEAD
-# Byte-compiled / optimized / DLL files
+
 __pycache__/
 *.py[codz]
 *$py.class
@@ -206,8 +205,4 @@ cython_debug/
 marimo/_static/
 marimo/_lsp/
 __marimo__/
-=======
-venv/
-.env
-install.cmd
->>>>>>> 8407bd6 (Initial Django + Docker setup)
+
